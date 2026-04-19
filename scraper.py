@@ -76,17 +76,19 @@ def _get_careers_future_job_company_name(job_item: dict) -> str | None:
     return None
 
 # --- LinkedIn Scraping Logic ---
-def _fetch_linkedin_job_ids(search_query: str, location: str) -> list:
+def _fetch_linkedin_job_ids(search_query: str, location: dict) -> list:
     """Fetches job IDs from LinkedIn search results pages with delays, rotating user agents, and retries."""
 
     job_ids_list = []
     start = 0
     max_start = config.LINKEDIN_MAX_START
 
+    location_name = location['name']
+    geo_id = location['geo_id']
 
-    logging.info(f"--- Starting Phase 1: Scraping Job IDs (Max Start: {max_start}) ---")
+    logging.info(f"--- Starting Phase 1: Scraping Job IDs for '{search_query}' in '{location_name}' (Max Start: {max_start}) ---")
     while start <= max_start:
-        target_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={search_query.replace(' ', '%20')}&location={location}&geoId={config.LINKEDIN_GEO_ID}&f_TPR={config.LINKEDIN_JOB_POSTING_DATE}&f_JT={config.LINKEDIN_JOB_TYPE}&f_WT={config.LINKEDIN_F_WT}&start={start}"
+        target_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={search_query.replace(' ', '%20')}&location={location_name}&geoId={geo_id}&f_TPR={config.LINKEDIN_JOB_POSTING_DATE}&f_JT={config.LINKEDIN_JOB_TYPE}&f_WT={config.LINKEDIN_F_WT}&start={start}"
 
         if start > 0:
             sleep_time = random.uniform(5.0, 15.0)
@@ -179,7 +181,7 @@ def _fetch_linkedin_job_ids(search_query: str, location: str) -> list:
         start += 10
 
 
-    logging.info(f"--- Finished Phase 1: Found {len(job_ids_list)} unique job IDs during scraping ---")
+    logging.info(f"--- Finished Phase 1: Found {len(job_ids_list)} unique job IDs for '{search_query}' in '{location_name}' ---")
     return job_ids_list
 
 def _fetch_linkedin_job_details(job_id: str) -> dict | None:
@@ -337,9 +339,9 @@ def _fetch_linkedin_job_details(job_id: str) -> dict | None:
          logging.error(f"General Error processing details for job ID {job_id} after successful fetch: {e}")
          return None
 
-def process_linkedin_query(search_query: str, location: str, limit: int = None) -> list:
+def process_linkedin_query(search_query: str, location: dict, limit: int = None) -> list:
     """
-    Orchestrates scraping and detail fetching for a single query,
+    Orchestrates scraping and detail fetching for a single query and location,
     filtering against existing jobs in Supabase BEFORE fetching details.
     Returns a list of new job details found.
     """
@@ -705,19 +707,20 @@ if __name__ == "__main__":
     if "linkedin" in config.SCRAPING_SOURCES:
         logging.info("\n--- Starting LinkedIn Job Scraping ---")
         max_jobs_per_search = config.MAX_JOBS_PER_SEARCH.get("linkedin", getattr(config, 'DEFAULT_MAX_JOBS_PER_SEARCH', 10))
-        for query in config.LINKEDIN_SEARCH_QUERIES:
-            print(f"\n{'='*20} Processing Search Query: '{query}' {'='*20}")
+        for location in config.LINKEDIN_LOCATIONS:
+            for query in config.LINKEDIN_SEARCH_QUERIES:
+                print(f"\n{'='*20} Processing Query: '{query}' in '{location['name']}' {'='*20}")
 
-            # 1. Process the query: Scrape IDs, filter, fetch new details
-            new_linkedin_job_details = process_linkedin_query(query, config.LINKEDIN_LOCATION, limit=max_jobs_per_search)
+                # 1. Process the query: Scrape IDs, filter, fetch new details
+                new_linkedin_job_details = process_linkedin_query(query, location, limit=max_jobs_per_search)
 
-            # 2. Save the NEW scraped data to Supabase
-            if new_linkedin_job_details:
-                print(f"\n--- Saving {len(new_linkedin_job_details)} new job(s) for query '{query}' ---")
-                supabase_utils.save_jobs_to_supabase(new_linkedin_job_details)
-                total_new_jobs_saved += len(new_linkedin_job_details)
-            else:
-                print(f"\nNo new job details were fetched or processed for query '{query}'.")
+                # 2. Save the NEW scraped data to Supabase
+                if new_linkedin_job_details:
+                    print(f"\n--- Saving {len(new_linkedin_job_details)} new job(s) for query '{query}' in '{location['name']}' ---")
+                    supabase_utils.save_jobs_to_supabase(new_linkedin_job_details)
+                    total_new_jobs_saved += len(new_linkedin_job_details)
+                else:
+                    print(f"\nNo new job details for query '{query}' in '{location['name']}'.")
     else:
         logging.info("\n--- Skipping LinkedIn Job Scraping per config ---")
 
