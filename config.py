@@ -31,11 +31,14 @@ LLM_MODEL = "openai/gpt-4o-mini"
 
 # --- Search Configuration ---
 LINKEDIN_SEARCH_QUERIES = ["Data Scientist", "Product Data Analyst", "Data Analyst"]
-LINKEDIN_LOCATION = "Singapore"
-LINKEDIN_GEO_ID = 102454443      # Singapore: 102454443, Dubai: 100205264
-LINKEDIN_JOB_TYPE = "F" # F=Full-time, C=Contract, P=Part-time, T=Temporary, I=Internship
-LINKEDIN_JOB_POSTING_DATE = "r604800" # r86400=Past 24h, r604800=Past week
-LINKEDIN_F_WT = 1 # 1=Onsite, 2=Remote, 3=Hybrid
+LINKEDIN_LOCATIONS = [
+    {"name": "Singapore", "geo_id": 102454443},
+    {"name": "Australia", "geo_id": 101452733},
+    {"name": "Taiwan", "geo_id": 104187078},
+]
+LINKEDIN_JOB_TYPE = "F"
+LINKEDIN_JOB_POSTING_DATE = "r1209600"  # r1209600 = Past 2 weeks
+LINKEDIN_F_WT = 1  # 1=Onsite, 2=Remote, 3=Hybrid
 
 CAREERS_FUTURE_SEARCH_QUERIES = ["Data Scientist", "Product Data Analyst", "Data Analyst"]
 CAREERS_FUTURE_SEARCH_CATEGORIES = ["Information Technology","Finance","Fintech","Finance Technology"]
